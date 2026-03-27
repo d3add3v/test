@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Advanced Sandbox</title>
+<style>
+:root{--p:#6366f1;--ph:#818cf8;--bg:#0f172a;--s:#1e293b;--b:#334155;--t:#e2e8f0;--m:#475569;--accent:#22d3ee;--success:#22c55e;--error:#ef4444}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);padding:20px;display:flex;flex-direction:column;height:100vh;background-image:radial-gradient(ellipse at top,#1e293b 0%,var(--bg) 70%)}
+h2{margin-bottom:15px;background:linear-gradient(135deg,var(--accent),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:1.5rem;font-weight:700}
+.container{display:flex;flex-direction:column;flex:1;gap:15px;max-width:1400px;margin:0 auto;width:100%}
+.editor-section{display:flex;flex-direction:column;gap:10px}
+.editor-wrapper{position:relative;flex:1;min-height:200px;display:flex;border-radius:10px;overflow:hidden;border:1px solid var(--b);background:var(--s)}
+.line-numbers{padding:15px 10px;background:rgba(0,0,0,0.3);color:var(--m);font-family:'JetBrains Mono','Fira Code',monospace;font-size:13px;line-height:1.6;text-align:right;user-select:none;min-width:45px;overflow:hidden}
+textarea{width:100%;flex:1;padding:15px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:13px;line-height:1.6;border:none;resize:none;background:var(--s);color:var(--t);tab-size:2}
+textarea:focus{outline:none}
+textarea::placeholder{color:var(--m)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;background:var(--s);padding:15px;border-radius:10px;border:1px solid var(--b);align-items:center}
+button,.file-label{background:linear-gradient(135deg,var(--p),#8b5cf6);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(99,102,241,0.3)}
+button:hover,.file-label:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,0.4)}
+button:active,.file-label:active{transform:translateY(0)}
+button.sec{background:var(--bg);color:var(--t);border:1px solid var(--b);box-shadow:none}
+button.sec:hover{background:#273548;border-color:var(--m)}
+button.danger{background:linear-gradient(135deg,var(--error),#dc2626)}
+input[type="file"]{display:none}
+.output-section{flex:1;display:flex;flex-direction:column;min-height:300px;border-radius:10px;overflow:hidden;border:1px solid var(--b);background:#fff}
+.output-header{display:flex;justify-content:space-between;align-items:center;padding:10px 15px;background:var(--s);border-bottom:1px solid var(--b)}
+.output-title{font-size:13px;color:var(--m);display:flex;align-items:center;gap:8px}
+.output-title::before{content:"";width:8px;height:8px;background:var(--success);border-radius:50%}
+.output-actions{display:flex;gap:8px}
+.output-actions button{padding:6px 12px;font-size:12px}
+iframe{width:100%;flex:1;background:#fff;border:none;min-height:250px}
+.status-bar{display:flex;justify-content:space-between;padding:8px 15px;background:var(--s);border-radius:8px;font-size:12px;color:var(--m);border:1px solid var(--b)}
+.status-bar .left{display:flex;gap:15px}
+.auto-run-toggle{display:flex;align-items:center;gap:8px;cursor:pointer}
+.toggle-switch{width:36px;height:20px;background:var(--m);border-radius:10px;position:relative;transition:0.3s}
+.toggle-switch::after{content:"";position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:0.3s}
+.auto-run-toggle.active .toggle-switch{background:var(--p)}
+.auto-run-toggle.active .toggle-switch::after{left:18px}
+.split-view{display:flex;gap:15px;flex:1}
+.split-view .editor-section,.split-view .output-section{flex:1;min-width:0}
+@media(max-width:900px){.split-view{flex-direction:column}}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;font-size:14px;z-index:1000;animation:slideIn 0.3s ease;display:none}
+.toast.success{background:var(--success);color:#fff}
+.toast.error{background:var(--error);color:#fff}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+<div class="container">
+<h2>Advanced HTML Sandbox</h2>
+<div class="status-bar">
+<div class="left">
+<span id="charCount">0 characters</span>
+<span id="lineCount">0 lines</span>
+<span id="fileStatus">No file loaded</span>
+</div>
+<label class="auto-run-toggle" id="autoRunToggle">
+<span>Auto-run</span>
+<div class="toggle-switch"></div>
+</label>
+</div>
+<div class="split-view">
+<div class="editor-section">
+<div class="editor-wrapper">
+<div class="line-numbers" id="lineNumbers">1</div>
+<textarea id="code" placeholder="Paste HTML/JS/CSS here" spellcheck="false"></textarea>
+</div>
+<div class="controls">
+<label class="file-label">Load HTML
+<input type="file" id="fileInput" accept=".html,.htm,.txt,.js,.css">
+</label>
+<button onclick="runCode()">Run</button>
+<button onclick="runCodeNewTab()">Run in New Tab</button>
+<button class="sec" onclick="openFullscreen()">Fullscreen</button>
+<button class="sec" onclick="downloadCode()">Save</button>
+<button class="sec danger" onclick="clearAll()">Clear</button>
+</div>
+</div>
+<div class="output-section">
+<div class="output-header">
+<div class="output-title">Output Preview</div>
+<div class="output-actions">
+<button class="sec" onclick="reloadFrame()">Reload</button>
+<button class="sec" onclick="copyOutput()">Copy</button>
+</div>
+</div>
+<iframe id="output" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-top-navigation allow-same-origin"></iframe>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const code=document.getElementById('code'),output=document.getElementById('output'),fileInput=document.getElementById('fileInput'),lineNumbers=document.getElementById('lineNumbers'),charCount=document.getElementById('charCount'),lineCountEl=document.getElementById('lineCount'),fileStatus=document.getElementById('fileStatus'),autoRunToggle=document.getElementById('autoRunToggle'),toast=document.getElementById('toast');
+let autoRun=false,debounceTimer=null;
+const saved=localStorage.getItem('sandbox_code');
+saved&&(code.value=saved,updateLineNumbers(),updateStats());
+autoRunToggle.addEventListener('click',()=>{autoRun=!autoRun;autoRunToggle.classList.toggle('active',autoRun);autoRun&&runCode()});
+fileInput.addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=event=>{code.value=event.target.result;fileStatus.textContent=file.name;updateLineNumbers();updateStats();saveCode();autoRun&&runCode();showToast('File loaded successfully','success')};reader.onerror=()=>showToast('Error reading file','error');reader.readAsText(file)});
+function updateLineNumbers(){const lines=code.value.split('\n').length;lineNumbers.innerHTML=Array.from({length:lines},(_,i)=>i+1).join('<br>')}
+function updateStats(){charCount.textContent=code.value.length.toLocaleString()+' characters';lineCountEl.textContent=code.value.split('\n').length+' lines'}
+function runCode(){output.srcdoc=code.value;saveCode()}
+function runCodeNewTab(){const win=window.open('about:blank','_blank');win?(win.document.open(),win.document.write(code.value),win.document.close(),showToast('Opened in new tab','success')):showToast('Pop-up blocked! Allow popups.','error')}
+function openFullscreen(){const iframe=output;iframe.requestFullscreen?iframe.requestFullscreen():iframe.webkitRequestFullscreen?iframe.webkitRequestFullscreen():iframe.mozRequestFullScreen&&iframe.mozRequestFullScreen()}
+function downloadCode(){const blob=new Blob([code.value],{type:'text/html'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sandbox_code.html';a.click();URL.revokeObjectURL(url);showToast('File saved!','success')}
+function clearAll(){confirm('Clear all code?')&&(code.value='',fileStatus.textContent='No file loaded',updateLineNumbers(),updateStats(),localStorage.removeItem('sandbox_code'),showToast('Cleared','success'))}
+function reloadFrame(){output.srcdoc=code.value}
+function copyOutput(){navigator.clipboard.writeText(code.value).then(()=>showToast('Copied to clipboard!','success'))}
+function saveCode(){localStorage.setItem('sandbox_code',code.value)}
+function showToast(message,type='success'){toast.textContent=message;toast.className='toast '+type;toast.style.display='block';setTimeout(()=>toast.style.display='none',2500)}
+code.addEventListener('input',()=>{updateLineNumbers();updateStats();autoRun&&(clearTimeout(debounceTimer),debounceTimer=setTimeout(runCode,500))});
+code.addEventListener('scroll',()=>lineNumbers.scrollTop=code.scrollTop);
+code.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const start=code.selectionStart,end=code.selectionEnd;code.value=code.value.substring(0,start)+'  '+code.value.substring(end);code.selectionStart=code.selectionEnd=start+2;updateLineNumbers()}e.ctrlKey&&e.key==='Enter'&&(e.preventDefault(),runCode())});
+
+// Auto-open in about:blank on page load
+window.addEventListener('load',()=>{
+  if(code.value){
+    runCode();
+    // Automatically open in about:blank
+    setTimeout(()=>{
+      const win=window.open('about:blank','_blank');
+      if(win){
+        win.document.open();
+        win.document.write(code.value);
+        win.document.close();
+        showToast('Auto-opened in new tab','success');
+      }else{
+        showToast('Pop-up blocked! Allow popups.','error');
+      }
+    },100);
+  }
+});
+</script>
+</body>
+</html>
